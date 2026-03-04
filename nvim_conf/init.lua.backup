@@ -1,0 +1,894 @@
+-- Ultimate Neovim Configuration for Web Development
+
+-- Bootstrap lazy.nvim
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+  vim.fn.system({
+    "git", "clone", "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable", lazypath,
+  })
+end
+vim.opt.rtp:prepend(lazypath)
+
+-- Leader key
+vim.g.mapleader = " "
+vim.g.maplocalleader = ","
+
+-- Disable default LSP mappings to avoid conflicts
+vim.api.nvim_create_autocmd('LspAttach', {
+  callback = function()
+    -- Remove default gr mappings
+    pcall(vim.keymap.del, 'n', 'grn')
+    pcall(vim.keymap.del, 'n', 'gra')
+    pcall(vim.keymap.del, 'n', 'grr')
+    pcall(vim.keymap.del, 'n', 'gri')
+    pcall(vim.keymap.del, 'n', 'grt')
+  end,
+})
+
+-- Basic settings
+vim.opt.number = true
+vim.opt.relativenumber = true
+vim.opt.expandtab = true
+vim.opt.shiftwidth = 2
+vim.opt.tabstop = 2
+vim.opt.smartindent = true
+vim.opt.wrap = true                 -- Enable line wrapping
+vim.opt.linebreak = true            -- Wrap at word boundaries
+vim.opt.breakindent = true          -- Preserve indentation in wrapped lines
+vim.opt.showbreak = "↪ "            -- Show indicator for wrapped lines
+vim.opt.swapfile = false
+vim.opt.backup = false
+vim.opt.undodir = vim.fn.stdpath("data") .. "/undodir"
+vim.opt.undofile = true
+vim.opt.hlsearch = false
+vim.opt.incsearch = true
+vim.opt.termguicolors = true
+vim.opt.scrolloff = 8
+vim.opt.signcolumn = "yes"
+vim.opt.updatetime = 50
+vim.opt.colorcolumn = "80"
+vim.opt.mouse = "a"
+vim.opt.clipboard = "unnamedplus"
+vim.opt.cursorline = true
+vim.opt.splitbelow = true
+vim.opt.splitright = true
+
+-- Plugin setup
+require("lazy").setup({
+  -- Dashboard
+  {
+    "nvimdev/dashboard-nvim",
+    event = "VimEnter",
+    config = function()
+      require("dashboard").setup({
+        theme = "doom",
+        config = {
+          header = {
+            "                                                       ",
+            "                                                       ",
+            "  ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗ ",
+            "  ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║ ",
+            "  ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║ ",
+            "  ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║ ",
+            "  ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║ ",
+            "  ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝ ",
+            "                                                       ",
+            "                                                       ",
+          },
+          center = {
+            {
+              icon = "  ",
+              icon_hl = "Title",
+              desc = "Find File",
+              desc_hl = "String",
+              key = "f",
+              key_hl = "Number",
+              action = "Telescope find_files"
+            },
+            {
+              icon = "  ",
+              desc = "Recent Files",
+              key = "r",
+              action = "Telescope oldfiles"
+            },
+            {
+              icon = "  ",
+              desc = "Find Text",
+              key = "g",
+              action = "Telescope live_grep"
+            },
+            {
+              icon = "  ",
+              desc = "New File",
+              key = "n",
+              action = "enew"
+            },
+            {
+              icon = "  ",
+              desc = "Config",
+              key = "c",
+              action = "edit ~/.config/nvim/init.lua"
+            },
+            {
+              icon = "  ",
+              desc = "Quit",
+              key = "q",
+              action = "quit"
+            },
+          },
+          footer = {
+            "⚡ Neovim loaded in " .. vim.fn.printf("%.3f", vim.fn.reltimefloat(vim.fn.reltime(vim.g.start_time))) .. " seconds"
+          }
+        }
+      })
+    end,
+    dependencies = { "nvim-tree/nvim-web-devicons" }
+  },
+
+  -- Colorschemes
+  {
+    "catppuccin/nvim",
+    name = "catppuccin",
+    priority = 1000,
+    config = function()
+      require("catppuccin").setup({
+        flavour = "mocha",
+        background = {
+          light = "latte",
+          dark = "mocha",
+        },
+        transparent_background = true,
+        integrations = {
+          cmp = true,
+          gitsigns = true,
+          nvimtree = true,
+          telescope = true,
+          treesitter = true,
+          mini = true,
+        },
+      })
+      vim.cmd.colorscheme("catppuccin")
+    end,
+  },
+
+  -- File explorer
+  {
+    "nvim-tree/nvim-tree.lua",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      require("nvim-tree").setup({
+        view = { width = 30, side = "left" },
+        renderer = {
+          group_empty = true,
+          icons = {
+            show = { file = true, folder = true, folder_arrow = true, git = true },
+          },
+        },
+        filters = { dotfiles = false },
+        git = { enable = true, ignore = false },
+        on_attach = function(bufnr)
+          local api = require("nvim-tree.api")
+          local function opts(desc)
+            return { desc = "nvim-tree: " .. desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
+          end
+
+          -- Default mappings
+          api.config.mappings.default_on_attach(bufnr)
+          
+          -- Remove conflicting mappings
+          vim.keymap.del("n", "y", { buffer = bufnr })
+          vim.keymap.del("n", "d", { buffer = bufnr })
+          vim.keymap.del("n", "c", { buffer = bufnr })
+          
+          -- Add alternative mappings
+          vim.keymap.set("n", "Y", api.fs.copy.node, opts("Copy"))
+          vim.keymap.set("n", "D", api.fs.remove, opts("Delete"))
+          vim.keymap.set("n", "C", api.fs.copy.filename, opts("Copy Name"))
+        end,
+      })
+    end,
+  },
+
+  -- Fuzzy finder
+  {
+    "nvim-telescope/telescope.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-telescope/telescope-fzf-native.nvim",
+    },
+    config = function()
+      require("telescope").setup({
+        defaults = {
+          file_ignore_patterns = { "node_modules", ".git/", "dist/", "build/" },
+          layout_strategy = "horizontal",
+          layout_config = { preview_width = 0.6 },
+        },
+      })
+    end,
+  },
+
+  -- Syntax highlighting
+  {
+    "nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
+    config = function()
+      require("nvim-treesitter.configs").setup({
+        ensure_installed = {
+          "lua", "vim", "vimdoc", "query",
+          "javascript", "typescript", "tsx",
+          "html", "css", "scss", "json", "yaml",
+          "php", "python", "rust", "go", "c", "cpp",
+          "bash", "dockerfile", "markdown", "markdown_inline",
+        },
+        highlight = { enable = true },
+        indent = { enable = true },
+        -- autotag is now configured separately
+        rainbow = {
+          enable = true,
+          extended_mode = true,
+          max_file_lines = nil,
+        },
+      })
+    end,
+  },
+
+  -- LSP Configuration
+  {
+    "neovim/nvim-lspconfig",
+    dependencies = {
+      "williamboman/mason.nvim",
+      "williamboman/mason-lspconfig.nvim",
+      "hrsh7th/cmp-nvim-lsp",
+      "hrsh7th/nvim-cmp",
+      "hrsh7th/cmp-buffer",
+      "hrsh7th/cmp-path",
+      "hrsh7th/cmp-cmdline",
+      {
+        "L3MON4D3/LuaSnip",
+        build = "make install_jsregexp",
+      },
+      "saadparwaiz1/cmp_luasnip",
+      "rafamadriz/friendly-snippets",
+      "onsails/lspkind.nvim",
+    },
+    config = function()
+      require("mason").setup()
+      require("mason-lspconfig").setup({
+        ensure_installed = {
+          "lua_ls", "ts_ls", "eslint", "html", "cssls",
+          "tailwindcss", "intelephense", "pyright", "rust_analyzer",
+          "gopls", "dockerls", "yamlls", "jsonls",
+        },
+        automatic_installation = true,
+        -- Disable automatic server setup
+        handlers = nil,
+      })
+
+      -- Setup LSP servers manually to avoid conflicts
+      local lspconfig = require("lspconfig")
+      local capabilities = require("cmp_nvim_lsp").default_capabilities()
+      
+      -- Setup each server manually
+      lspconfig.ts_ls.setup({ capabilities = capabilities })
+      lspconfig.eslint.setup({ capabilities = capabilities })
+      lspconfig.html.setup({ capabilities = capabilities })
+      lspconfig.cssls.setup({ capabilities = capabilities })
+      lspconfig.tailwindcss.setup({ capabilities = capabilities })
+      lspconfig.pyright.setup({ capabilities = capabilities })
+      lspconfig.rust_analyzer.setup({ capabilities = capabilities })
+      lspconfig.gopls.setup({ capabilities = capabilities })
+      lspconfig.dockerls.setup({ capabilities = capabilities })
+      lspconfig.yamlls.setup({ capabilities = capabilities })
+      lspconfig.jsonls.setup({ capabilities = capabilities })
+
+      -- PHP with enhanced configuration
+      -- Option 1: PHPActor (comment out if using Intelephense)
+      -- lspconfig.phpactor.setup({
+      --   capabilities = capabilities,
+      --   root_dir = function(fname)
+      --     return lspconfig.util.root_pattern(
+      --       "composer.json",
+      --       ".phpactor.json",
+      --       ".phpactor.yml",
+      --       "phpactor.json",
+      --       "phpactor.yml",
+      --       ".git"
+      --     )(fname) or vim.fn.getcwd()
+      --   end,
+      --   init_options = {
+      --     ["language_server_phpstan.enabled"] = false,
+      --     ["language_server_psalm.enabled"] = false,
+      --     ["language_server_php_cs_fixer.enabled"] = true,
+      --     ["composer.autoload_path"] = "vendor/autoload.php",
+      --   },
+      --   settings = {
+      --     phpactor = {
+      --       completion = {
+      --         insertUse = true,
+      --       },
+      --     },
+      --   },
+      -- })
+      
+      -- Option 2: Intelephense with unified configuration
+      local get_intelephense_license = function()
+        local f = io.open(os.getenv("HOME") .. "/intelephense/license.txt", "rb")
+        if not f then
+          return ""
+        end
+        local content = f:read("*a")
+        f:close()
+        return string.gsub(content, "%s+", "")
+      end
+
+      lspconfig.intelephense.setup({
+        capabilities = capabilities,
+        cmd = { vim.fn.expand("~/.npm-global/bin/intelephense"), "--stdio" },
+        init_options = {
+          licenceKey = get_intelephense_license(),
+          storagePath = vim.fn.expand("~/.cache/intelephense"),
+        },
+        root_dir = function()
+          -- Use current working directory like in the example
+          return vim.loop.cwd()
+        end,
+        single_file_support = false,
+        settings = {
+          intelephense = {
+            files = {
+              associations = {   -- glob patterns relative to workspace root
+                "**/*.php",
+                "**/*.phtml",
+                "**/*.inc",
+                "**/*.module",
+                "**/*.theme",
+                "**/*.install",
+              },
+              exclude = {
+                "**/dist/**",     -- ← ignore any "dist" folder
+                "**/.git/**",
+                "**/node_modules/**",
+                "**/bower_components/**",
+                "**/vendor/**/.*/**",  -- usual extra exclusions
+                "**/vendor/**/{Test,test,Tests,tests}/**",
+                "**/cache/**",
+                "**/tmp/**",
+                "**/temp/**"
+              },
+              maxSize = 5000000
+            },
+            stubs = {
+              "apache", "bcmath", "bz2", "calendar", "com_dotnet", "Core", "ctype", "curl", "date",
+              "dba", "dom", "enchant", "exif", "fileinfo", "filter", "fpm", "ftp", "gd", "hash",
+              "iconv", "imap", "interbase", "intl", "json", "ldap", "libxml", "mbstring", "mcrypt",
+              "meta", "mssql", "mysqli", "oci8", "odbc", "openssl", "pcntl", "pcre", "PDO",
+              "pdo_ibm", "pdo_mysql", "pdo_pgsql", "pdo_sqlite", "pgsql", "Phar", "posix", "pspell",
+              "readline", "recode", "Reflection", "regex", "session", "shmop", "SimpleXML", "snmp",
+              "soap", "sockets", "sodium", "SPL", "sqlite3", "standard", "superglobals", "sybase",
+              "sysvmsg", "sysvsem", "sysvshm", "tidy", "tokenizer", "wddx", "xml", "xmlreader",
+              "xmlrpc", "xmlwriter", "Zend OPcache", "zip", "zlib"
+            },
+            environment = {
+              phpVersion = "8.3.0",
+              includePaths = {
+                "/home/lukas/apertia/autocrm",
+                "/home/lukas/apertia/espocrm",
+                "/home/lukas/apertia/espocrm/application",
+                "/home/lukas/apertia/espocrm/application/Espo",
+                "/home/lukas/apertia/espocrm/custom",
+                "/home/lukas/apertia/modules",
+                "/home/lukas/apertia/projects",
+                "/home/lukas/apertia/PhpSpreadsheet"
+              }
+            },
+            completion = {
+              insertUseDeclaration = true,
+              fullyQualifyGlobalConstantsAndFunctions = false,
+              triggerParameterHints = true,
+              maxItems = 100
+            },
+            format = {
+              enable = false
+            },
+            diagnostics = {
+              enable = true,              -- global switch
+              undefinedTypes = true,
+              undefinedFunctions = true,
+              undefinedConstants = true,
+              undefinedVariables = true,
+              duplicateSymbols = true,
+              unreachableCode = true,
+            },
+            trace = {
+              server = "off"
+            }
+          }
+        },
+      })
+
+      -- Lua LS needs special configuration
+      lspconfig.lua_ls.setup({
+        capabilities = capabilities,
+        settings = {
+          Lua = {
+            diagnostics = { globals = { "vim" } },
+          },
+        },
+      })
+
+      -- Autocompletion
+      local cmp = require("cmp")
+      local lspkind = require("lspkind")
+      require("luasnip.loaders.from_vscode").lazy_load()
+
+      cmp.setup({
+        snippet = {
+          expand = function(args)
+            require("luasnip").lsp_expand(args.body)
+          end,
+        },
+        formatting = {
+          format = lspkind.cmp_format({
+            mode = "symbol_text",
+            maxwidth = 50,
+          }),
+        },
+        mapping = cmp.mapping.preset.insert({
+          ["<C-b>"] = cmp.mapping.scroll_docs(-4),
+          ["<C-f>"] = cmp.mapping.scroll_docs(4),
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<C-e>"] = cmp.mapping.abort(),
+          ["<CR>"] = cmp.mapping.confirm({ select = true }),
+          ["<Tab>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            else
+              fallback()
+            end
+          end, { "i", "s" }),
+        }),
+        sources = cmp.config.sources({
+          { name = "nvim_lsp" },
+          { name = "luasnip" },
+          { name = "path" },
+        }, {
+          { name = "buffer" },
+        }),
+      })
+    end,
+  },
+
+  -- Git integration
+  {
+    "lewis6991/gitsigns.nvim",
+    config = function()
+      require("gitsigns").setup({
+        signs = {
+          add = { text = "+" },
+          change = { text = "~" },
+          delete = { text = "_" },
+          topdelete = { text = "‾" },
+          changedelete = { text = "~" },
+        },
+      })
+    end,
+  },
+
+  -- Git UI
+  {
+    "kdheepak/lazygit.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+  },
+
+  -- Status line
+  {
+    "nvim-lualine/lualine.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    event = "VeryLazy",
+    config = function()
+      require("lualine").setup({
+        options = {
+          theme = "catppuccin",
+          component_separators = { left = "", right = "" },
+          section_separators = { left = "", right = "" },
+        },
+      })
+    end,
+  },
+
+  -- Bufferline
+  {
+    "akinsho/bufferline.nvim",
+    dependencies = "nvim-tree/nvim-web-devicons",
+    config = function()
+      require("bufferline").setup({
+        options = {
+          diagnostics = "nvim_lsp",
+          separator_style = "slant",
+          show_buffer_close_icons = true,
+          show_close_icon = true,
+        },
+      })
+    end,
+  },
+
+  -- Auto pairs
+  {
+    "windwp/nvim-autopairs",
+    config = function()
+      require("nvim-autopairs").setup({
+        check_ts = true,
+      })
+    end,
+  },
+
+  -- Auto tag
+  {
+    "windwp/nvim-ts-autotag",
+    config = function()
+      require("nvim-ts-autotag").setup({
+        opts = {
+          enable_close = true,
+          enable_rename = true,
+          enable_close_on_slash = false
+        }
+      })
+    end,
+  },
+
+  -- Comment
+  {
+    "numToStr/Comment.nvim",
+    config = function()
+      require("Comment").setup()
+    end,
+  },
+
+  -- Surround
+  {
+    "kylechui/nvim-surround",
+    config = function()
+      require("nvim-surround").setup()
+    end,
+  },
+
+  -- Terminal
+  {
+    "akinsho/toggleterm.nvim",
+    config = function()
+      require("toggleterm").setup({
+        open_mapping = [[<c-\>]],
+        direction = "float",
+        float_opts = {
+          border = "curved",
+        },
+      })
+    end,
+  },
+
+  -- Indent guides
+  {
+    "lukas-reineke/indent-blankline.nvim",
+    main = "ibl",
+    config = function()
+      require("ibl").setup({
+        indent = { char = "┊" },
+      })
+    end,
+  },
+
+  -- Color highlighter
+  {
+    "brenoprata10/nvim-highlight-colors",
+    config = function()
+      require("nvim-highlight-colors").setup({
+        render = "background",
+        enable_named_colors = true,
+        enable_tailwind = false,
+      })
+    end,
+  },
+
+  -- Mini icons (optional, but removes which-key warning)
+  {
+    "echasnovski/mini.icons",
+    version = false,
+    config = function()
+      require("mini.icons").setup()
+    end,
+  },
+
+  -- Which key
+  {
+    "folke/which-key.nvim",
+    config = function()
+      require("which-key").setup({})
+    end,
+  },
+
+  -- Smooth scrolling
+  {
+    "karb94/neoscroll.nvim",
+    config = function()
+      require("neoscroll").setup()
+    end,
+  },
+
+  -- TODO comments
+  {
+    "folke/todo-comments.nvim",
+    dependencies = { "nvim-lua/plenary.nvim" },
+    config = function()
+      require("todo-comments").setup()
+    end,
+  },
+
+  -- Trouble
+  {
+    "folke/trouble.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      require("trouble").setup()
+    end,
+  },
+
+  -- Git blame
+  {
+    "f-person/git-blame.nvim",
+    config = function()
+      require("gitblame").setup({
+        enabled = true,
+        date_format = "%Y-%m-%d %H:%M",
+        message_template = " <author> • <date> • <summary>",
+        message_when_not_committed = " Not Committed Yet",
+        highlight_group = "Comment",
+        set_extmark_options = {
+          priority = 7,
+        },
+        display_virtual_text = 1,
+        ignored_filetypes = {},
+        delay = 250,
+        virtual_text_column = nil,
+      })
+    end,
+  },
+
+  -- GitHub Copilot
+  {
+    "github/copilot.vim",
+    config = function()
+      -- Copilot settings
+      vim.g.copilot_no_tab_map = true
+      vim.g.copilot_assume_mapped = true
+      vim.g.copilot_tab_fallback = ""
+      -- Set copilot to use Node.js 18+
+      vim.g.copilot_node_command = "node"
+    end,
+  },
+}, {
+  rocks = {
+    enabled = false,
+  },
+})
+
+-- Keymaps
+local keymap = vim.keymap.set
+
+-- File explorer
+keymap("n", "<leader>e", ":NvimTreeToggle<CR>", { desc = "Toggle file explorer" })
+keymap("n", "<leader>E", ":NvimTreeFindFile<CR>", { desc = "Find current file in explorer" })
+keymap("n", "<leader>o", ":NvimTreeFocus<CR>", { desc = "Focus file explorer" })
+
+-- Telescope
+keymap("n", "<leader>ff", ":Telescope find_files<CR>", { desc = "Find files" })
+keymap("n", "<leader>fg", ":Telescope live_grep<CR>", { desc = "Live grep" })
+keymap("n", "<leader>fb", ":Telescope buffers<CR>", { desc = "Find buffers" })
+keymap("n", "<leader>fh", ":Telescope help_tags<CR>", { desc = "Help tags" })
+keymap("n", "<leader>fr", ":Telescope oldfiles<CR>", { desc = "Recent files" })
+keymap("n", "<leader>fc", ":Telescope colorscheme<CR>", { desc = "Colorschemes" })
+
+-- LSP
+keymap("n", "gd", vim.lsp.buf.definition, { desc = "Go to definition" })
+keymap("n", "gD", vim.lsp.buf.declaration, { desc = "Go to declaration" })
+keymap("n", "gr", vim.lsp.buf.references, { desc = "Go to references" })
+keymap("n", "gi", vim.lsp.buf.implementation, { desc = "Go to implementation" })
+keymap("n", "K", vim.lsp.buf.hover, { desc = "Hover documentation" })
+keymap("n", "<leader>cr", vim.lsp.buf.rename, { desc = "Rename symbol" })
+keymap("n", "<leader>ca", vim.lsp.buf.code_action, { desc = "Code action" })
+keymap("n", "<leader>cf", vim.lsp.buf.format, { desc = "Format file" })
+
+-- Git
+keymap("n", "<leader>gg", ":LazyGit<CR>", { desc = "LazyGit" })
+keymap("n", "<leader>gj", ":Gitsigns next_hunk<CR>", { desc = "Next hunk" })
+keymap("n", "<leader>gk", ":Gitsigns prev_hunk<CR>", { desc = "Previous hunk" })
+keymap("n", "<leader>gp", ":Gitsigns preview_hunk<CR>", { desc = "Preview hunk" })
+keymap("n", "<leader>gd", ":Gitsigns diffthis<CR>", { desc = "Diff current file" })
+keymap("n", "<leader>gb", ":GitBlameToggle<CR>", { desc = "Toggle git blame" })
+keymap("n", "<leader>gc", ":GitBlameCopySHA<CR>", { desc = "Copy git blame SHA" })
+keymap("n", "<leader>go", ":GitBlameOpenCommitURL<CR>", { desc = "Open commit URL" })
+
+-- Window navigation
+keymap("n", "<C-h>", "<C-w>h", { desc = "Navigate left" })
+keymap("n", "<C-j>", "<C-w>j", { desc = "Navigate down" })
+keymap("n", "<C-k>", "<C-w>k", { desc = "Navigate up" })
+keymap("n", "<C-l>", "<C-w>l", { desc = "Navigate right" })
+
+-- Buffer navigation
+keymap("n", "<Tab>", ":BufferLineCycleNext<CR>", { desc = "Next buffer" })
+keymap("n", "<S-Tab>", ":BufferLineCyclePrev<CR>", { desc = "Previous buffer" })
+keymap("n", "<leader>bd", ":bdelete<CR>", { desc = "Delete buffer" })
+
+-- Save and quit
+keymap("n", "<leader>w", ":w<CR>", { desc = "Save file" })
+keymap("n", "<leader>q", ":q<CR>", { desc = "Quit" })
+keymap("n", "<leader>Q", ":q!<CR>", { desc = "Quit without saving" })
+keymap("n", "<leader>W", ":wq<CR>", { desc = "Save and quit" })
+
+-- Trouble
+keymap("n", "<leader>xx", ":TroubleToggle<CR>", { desc = "Toggle trouble" })
+keymap("n", "<leader>xw", ":TroubleToggle workspace_diagnostics<CR>", { desc = "Workspace diagnostics" })
+keymap("n", "<leader>xd", ":TroubleToggle document_diagnostics<CR>", { desc = "Document diagnostics" })
+
+-- Diagnostics
+keymap("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous diagnostic" })
+keymap("n", "]d", vim.diagnostic.goto_next, { desc = "Next diagnostic" })
+keymap("n", "<leader>de", vim.diagnostic.open_float, { desc = "Show diagnostic error" })
+keymap("n", "<leader>dl", vim.diagnostic.setloclist, { desc = "Add diagnostics to location list" })
+keymap("n", "<leader>td", function()
+  vim.diagnostic.enable(not vim.diagnostic.is_enabled())
+end, { desc = "Toggle diagnostics" })
+
+-- Terminal
+keymap("t", "<Esc>", [[<C-\><C-n>]], { desc = "Exit terminal mode" })
+
+-- Copilot
+keymap("i", "<C-J>", 'copilot#Accept("\\<CR>")', { expr = true, replace_keycodes = false, desc = "Accept Copilot suggestion" })
+keymap("i", "<M-]>", 'copilot#Next()', { expr = true, desc = "Next Copilot suggestion" })
+keymap("i", "<M-[>", 'copilot#Previous()', { expr = true, desc = "Previous Copilot suggestion" })
+keymap("i", "<M-\\>", 'copilot#Dismiss()', { expr = true, desc = "Dismiss Copilot suggestion" })
+
+-- PHP specific keymaps
+keymap("n", "<leader>pi", function()
+  vim.lsp.buf.code_action({ 
+    filter = function(action) 
+      return action.title:match("Import") 
+    end,
+    apply = true
+  })
+end, { desc = "PHP Import class" })
+keymap("n", "<leader>pf", ":!vendor/bin/php-cs-fixer fix %<CR>", { desc = "PHP CS Fixer" })
+keymap("n", "<leader>ps", ":!vendor/bin/phpstan analyse %<CR>", { desc = "PHPStan analyze" })
+keymap("n", "<leader>pu", ":!vendor/bin/phpunit %<CR>", { desc = "PHPUnit test" })
+
+-- LSP Diagnostics Configuration
+vim.diagnostic.config({
+  virtual_text = {
+    prefix = "●",
+    source = "always",
+    spacing = 4,
+  },
+  signs = true,
+  underline = true,
+  update_in_insert = false,
+  severity_sort = true,
+  float = {
+    focusable = false,
+    style = "minimal",
+    border = "rounded",
+    source = "always",
+    header = "",
+    prefix = "",
+  },
+})
+
+-- Diagnostic signs
+local signs = { Error = " ", Warn = " ", Hint = " ", Info = " " }
+for type, icon in pairs(signs) do
+  local hl = "DiagnosticSign" .. type
+  vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+end
+
+-- Auto commands
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "javascript", "typescript", "html", "css", "json", "yaml" },
+  callback = function()
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.tabstop = 2
+  end,
+})
+
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "php", "python" },
+  callback = function()
+    vim.opt_local.shiftwidth = 4
+    vim.opt_local.tabstop = 4
+  end,
+})
+
+-- Custom command to show LSP keybindings help
+vim.api.nvim_create_user_command("LspKeybindings", function()
+  local help_text = [[
+LSP Keybindings Help:
+
+Navigation:
+  gd          - Go to definition
+  gb          - Go to definition (alternate)
+  gr          - Go to references
+  gi          - Go to implementation
+  K           - Hover documentation (show info about symbol)
+
+Code Actions:
+  <leader>ca  - Code action (show available actions)
+  <leader>rn  - Rename symbol
+  <leader>f   - Format file
+
+Diagnostics:
+  [d          - Go to previous diagnostic
+  ]d          - Go to next diagnostic
+  <leader>de  - Show diagnostic error in floating window
+  <leader>dl  - Add diagnostics to location list
+  <leader>td  - Toggle diagnostics
+
+PHP Specific:
+  <leader>pi  - Import PHP class
+  <leader>pf  - Run PHP CS Fixer on current file
+  <leader>ps  - Run PHPStan analysis on current file
+  <leader>pu  - Run PHPUnit test on current file
+
+Tips:
+  - Press <Space> to see all leader key mappings
+  - Press g to see all go-to mappings
+  - Use :WhichKey to explore keybindings interactively
+  ]]
+  
+  -- Create a floating window to display help
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(help_text, "\n"))
+  
+  local width = 60
+  local height = 30
+  local win_opts = {
+    relative = "editor",
+    width = width,
+    height = height,
+    col = (vim.o.columns - width) / 2,
+    row = (vim.o.lines - height) / 2,
+    border = "rounded",
+    style = "minimal",
+    title = " LSP Keybindings ",
+    title_pos = "center",
+  }
+  
+  local win = vim.api.nvim_open_win(buf, true, win_opts)
+  vim.api.nvim_buf_set_option(buf, "modifiable", false)
+  vim.api.nvim_buf_set_keymap(buf, "n", "q", ":close<CR>", { noremap = true, silent = true })
+  vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", ":close<CR>", { noremap = true, silent = true })
+end, { desc = "Show LSP keybindings help" })
+
+-- Add keybinding for LSP help
+keymap("n", "<leader>lh", ":LspKeybindings<CR>", { desc = "Show LSP keybindings help" })
+keymap("n", "<leader>?", ":WhichKey<CR>", { desc = "Show all keybindings" })
+
+-- Toggle line wrapping
+keymap("n", "<leader>tw", function()
+  vim.opt.wrap = not vim.opt.wrap:get()
+  if vim.opt.wrap:get() then
+    vim.notify("Line wrapping enabled", vim.log.levels.INFO)
+  else
+    vim.notify("Line wrapping disabled", vim.log.levels.INFO)
+  end
+end, { desc = "Toggle line wrapping" })
+
+-- Show help hint on startup
+vim.api.nvim_create_autocmd("VimEnter", {
+  callback = function()
+    vim.defer_fn(function()
+      if vim.fn.argc() == 0 then
+        -- Only show if no files were opened
+        vim.notify("Press <leader>lh to see LSP keybindings or <leader>? for all keybindings", vim.log.levels.INFO, { title = "Neovim Help" })
+      end
+    end, 500)
+  end,
+})
