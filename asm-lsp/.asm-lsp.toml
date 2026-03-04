@@ -1,0 +1,13 @@
+[default_config]
+# Specify your assembler. Options: "nasm", "gas", "masm", "fasm", "go"
+assembler = "nasm"
+
+instruction_set = "x86/x86-64"
+
+[default_config.opts]
+# Tells the LSP to show you syntax warnings/errors
+diagnostics = true
+default_diagnostics = true
+
+# Specify the compiler for diagnostics (without this, gcc/clang are used which expect GAS syntax)
+compiler = "nasm"
