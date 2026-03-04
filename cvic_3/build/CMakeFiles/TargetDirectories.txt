@@ -1,0 +1,3 @@
+/home/lukas/skola/APPS/cvic_3/build/CMakeFiles/cvic_3.dir
+/home/lukas/skola/APPS/cvic_3/build/CMakeFiles/edit_cache.dir
+/home/lukas/skola/APPS/cvic_3/build/CMakeFiles/rebuild_cache.dir

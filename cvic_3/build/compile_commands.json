@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/home/lukas/skola/APPS/cvic_3/build",
+  "command": "/usr/bin/clang -g -std=gnu11 -o CMakeFiles/cvic_3.dir/main.c.o -c /home/lukas/skola/APPS/cvic_3/main.c",
+  "file": "/home/lukas/skola/APPS/cvic_3/main.c",
+  "output": "/home/lukas/skola/APPS/cvic_3/build/CMakeFiles/cvic_3.dir/main.c.o"
+},
+{
+  "directory": "/home/lukas/skola/APPS/cvic_3/build",
+  "command": "/usr/bin/nasm  -g -F dwarf -f elf64 -o CMakeFiles/cvic_3.dir/asm.asm.o /home/lukas/skola/APPS/cvic_3/asm.asm",
+  "file": "/home/lukas/skola/APPS/cvic_3/asm.asm",
+  "output": "/home/lukas/skola/APPS/cvic_3/build/CMakeFiles/cvic_3.dir/asm.asm.o"
+}
+]
